@@ -10,12 +10,41 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  PROJECT_NAME: tomli # Parameterize the project name
 
 jobs:
-  release:
-
-    runs-on: ubuntu-latest
-
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust_target: x86_64-unknown-linux-gnu
+            os_name: linux
+            arch_name: amd64
+            file_ext: tar.gz
+          - os: ubuntu-latest
+            rust_target: aarch64-unknown-linux-gnu
+            os_name: linux
+            arch_name: arm64
+            file_ext: tar.gz
+          - os: macos-latest
+            rust_target: x86_64-apple-darwin
+            os_name: darwin
+            arch_name: amd64
+            file_ext: tar.gz
+          - os: macos-14
+            rust_target: aarch64-apple-darwin
+            os_name: darwin
+            arch_name: arm64
+            file_ext: tar.gz
+          - os: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            os_name: windows
+            arch_name: amd64
+            file_ext: zip
+    runs-on: ${{ matrix.os }}
+    env:
+      VERSION: ${{ github.ref_name }} # Set VERSION for this job
     steps:
       - uses: actions/checkout@v4
 
@@ -26,15 +55,54 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.rust_target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build release
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.rust_target }}
+        if: ${{ matrix.os != 'windows-latest' }} # rustup is not available on windows-latest by default
+
+      - name: Build binary
+        run: cargo build --verbose --release --target ${{ matrix.rust_target }}
+
+      - name: Prepare artifact
         run: |
-          cargo build --release
-          mv target/release/tomli .
-          tar -czf tomli.tar.gz tomli CHANGELOG.md LICENSE
+          # Use VERSION directly (includes 'v' prefix if present in tag)
+          RELEASE_VERSION="${VERSION}"
+          ARTIFACT_NAME="${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }}.exe ${ARTIFACT_NAME}.exe
+            7z a ${ARTIFACT_NAME}.zip ${ARTIFACT_NAME}.exe CHANGELOG.md LICENSE
+            sha256sum ${ARTIFACT_NAME}.zip > ${ARTIFACT_NAME}.zip.sha256
+          else
+            mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
+            tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
+            sha256sum ${ARTIFACT_NAME}.tar.gz > ${ARTIFACT_NAME}.tar.gz.sha256
+          fi
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch_name }}
+          path: |
+            ${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}.*
+            ${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}.*.sha256
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }} # Set VERSION for this job
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: tomli.tar.gz
+          files: |
+            artifacts/*/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.tar.gz
+            artifacts/*/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.zip
+            artifacts/*/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.sha256
