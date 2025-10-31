@@ -82,7 +82,7 @@ jobs:
         shell: bash
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch_name }}
           path: |
@@ -95,7 +95,7 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }} # Set VERSION for this job
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
 
