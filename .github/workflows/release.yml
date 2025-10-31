@@ -78,6 +78,9 @@ jobs:
           RELEASE_VERSION="${VERSION}"
           ARTIFACT_NAME="${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
 
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }}.exe ${ARTIFACT_NAME}.exe
             7z a ${ARTIFACT_NAME}.zip ${ARTIFACT_NAME}.exe CHANGELOG.md LICENSE
@@ -98,8 +101,8 @@ jobs:
         with:
           name: ${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch_name }}
           path: |
-            ${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}.*
-            ${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}.*.sha256
+            ${{ env.ARTIFACT_NAME }}.*
+            ${{ env.ARTIFACT_NAME }}.*.sha256
 
   release:
     needs: build
