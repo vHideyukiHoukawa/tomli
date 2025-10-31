@@ -74,7 +74,11 @@ jobs:
             mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }}.exe ${ARTIFACT_NAME}.exe
             7z a ${ARTIFACT_NAME}.zip ${ARTIFACT_NAME}.exe CHANGELOG.md LICENSE
             sha256sum ${ARTIFACT_NAME}.zip > ${ARTIFACT_NAME}.zip.sha256
-          else
+          elif [[ "${{ matrix.os }}" == macos-* ]]; then
+            mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
+            tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
+            shasum -a 256 ${ARTIFACT_NAME}.tar.gz > ${ARTIFACT_NAME}.tar.gz.sha256
+          else # Linux
             mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
             tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
             sha256sum ${ARTIFACT_NAME}.tar.gz > ${ARTIFACT_NAME}.tar.gz.sha256
