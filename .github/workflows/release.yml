@@ -57,8 +57,16 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.rust_target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install Rust target
-        run: rustup target add ${{ matrix.rust_target }}
+      - name: Install Rust target and cross-compilation tools
+        run: |
+          rustup target add ${{ matrix.rust_target }}
+          if [ "${{ matrix.rust_target }}" = "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get update
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+            mkdir -p .cargo
+            echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml
+            echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
+          fi
         if: ${{ matrix.os != 'windows-latest' }} # rustup is not available on windows-latest by default
 
       - name: Build binary
