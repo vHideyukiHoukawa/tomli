@@ -44,7 +44,7 @@ jobs:
             file_ext: zip
     runs-on: ${{ matrix.os }}
     env:
-      VERSION: ${{ github.ref_name }} # Set VERSION for this job
+      VERSION: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -75,10 +75,8 @@ jobs:
       - name: Prepare artifact
         run: |
           # Use VERSION directly (includes 'v' prefix if present in tag)
-          RELEASE_VERSION="${VERSION}"
-          ARTIFACT_NAME="${{ env.PROJECT_NAME }}-${RELEASE_VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
+          ARTIFACT_NAME="${{ env.PROJECT_NAME }}-${VERSION}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
 
-          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
           echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
@@ -104,11 +102,62 @@ jobs:
             ${{ env.ARTIFACT_NAME }}.*
             ${{ env.ARTIFACT_NAME }}.*.sha256
 
-  release:
+  create-universal-macos-binary:
     needs: build
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Download individual macOS artifacts
+      - name: Download macOS AMD64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-macos-latest-amd64
+          path: artifacts/macos-amd64
+
+      - name: Download macOS ARM64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-macos-14-arm64
+          path: artifacts/macos-arm64
+
+      # Extract binaries and combine with lipo
+      - name: Create Universal macOS Binary
+        run: |
+          # Extract AMD64 binary from its archive
+          tar -xzf artifacts/macos-amd64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-amd64.tar.gz -C artifacts/macos-amd64
+          # Extract ARM64 binary from its archive
+          tar -xzf artifacts/macos-arm64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-arm64.tar.gz -C artifacts/macos-arm64
+
+          # Combine with lipo
+          lipo -create \
+            artifacts/macos-amd64/${{ env.PROJECT_NAME }} \
+            artifacts/macos-arm64/${{ env.PROJECT_NAME }} \
+            -output ${{ env.PROJECT_NAME }} # Output the universal binary to the root
+
+          # Create universal archive
+          tar -czf ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz \
+            ${{ env.PROJECT_NAME }} CHANGELOG.md LICENSE
+
+          # Generate checksum for universal binary
+          shasum -a 256 ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz > ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz.sha256
+        shell: bash
+
+      - name: Upload Universal macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-darwin-universal
+          path: |
+            ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz
+            ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz.sha256
+
+  release:
+    needs: [build, create-universal-macos-binary]
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ github.ref_name }} # Set VERSION for this job
+      VERSION: ${{ github.ref_name }}
     steps:
       - uses: actions/download-artifact@v4
         with:
