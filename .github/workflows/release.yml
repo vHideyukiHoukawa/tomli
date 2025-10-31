@@ -133,8 +133,8 @@ jobs:
 
           # Combine with lipo
           lipo -create \
-            artifacts/macos-amd64/${{ env.PROJECT_NAME }} \
-            artifacts/macos-arm64/${{ env.PROJECT_NAME }} \
+            artifacts/macos-amd64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-amd64 \
+            artifacts/macos-arm64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-arm64 \
             -output ${{ env.PROJECT_NAME }} # Output the universal binary to the root
 
           # Create universal archive
