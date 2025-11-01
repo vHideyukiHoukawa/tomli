@@ -23,9 +23,9 @@ jobs:
             os_name: linux
             arch_name: amd64
             file_ext: tar.gz
-          # Linux ARM64
+          # Linux ARM64 (musl)
           - os: ubuntu-latest
-            rust_target: aarch64-unknown-linux-gnu
+            rust_target: aarch64-unknown-linux-musl
             os_name: linux
             arch_name: arm64
             file_ext: tar.gz
@@ -71,6 +71,9 @@ jobs:
             mkdir -p .cargo
             echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml
             echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
+          elif [ "${{ matrix.rust_target }}" = "aarch64-unknown-linux-musl" ]; then
+            sudo apt-get update
+            sudo apt-get install -y musl-tools
           fi
         if: ${{ matrix.os != 'windows-latest' }} # rustup is not available on windows-latest by default
 
@@ -171,7 +174,7 @@ jobs:
             os_name: linux
             arch_name: amd64
             file_ext: tar.gz
-          # Linux ARM64
+          # Linux ARM64 (musl)
           - os: ubuntu-latest
             artifact_name_suffix: ubuntu-latest-arm64
             os_name: linux
@@ -205,13 +208,6 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }}
     steps:
-      - name: Install QEMU for ARM64 testing
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch_name == 'arm64' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static binfmt-support
-        shell: bash
-
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -224,7 +220,7 @@ jobs:
           ARTIFACT_ARCHIVE_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}.${{ matrix.file_ext }}"
           EXTRACT_DIR="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
           
-          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}" # Now always the full name
+          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z x -aoa "${ARTIFACT_ARCHIVE_NAME}" -o"${EXTRACT_DIR}" # Extract to a new directory
@@ -239,7 +235,7 @@ jobs:
         shell: bash
 
   release:
-    needs: [build, create-universal-macos-binary, test-binaries] # Depends on all builds and tests
+    needs: [build, create-universal-macos-binary, test-binaries]
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ github.ref_name }}
