@@ -136,18 +136,20 @@ jobs:
           # Extract ARM64 binary from its archive
           tar -xzf artifacts/macos-arm64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-arm64.tar.gz -C artifacts/macos-arm64
 
+          UNIVERSAL_BINARY_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal"
+
           # Combine with lipo
           lipo -create \
             artifacts/macos-amd64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-amd64 \
             artifacts/macos-arm64/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-arm64 \
-            -output ${{ env.PROJECT_NAME }} # Output the universal binary to the root
+            -output ${UNIVERSAL_BINARY_NAME} # Output the universal binary with full name
 
           # Create universal archive
-          tar -czf ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz \
-            ${{ env.PROJECT_NAME }} CHANGELOG.md LICENSE
+          tar -czf ${UNIVERSAL_BINARY_NAME}.tar.gz \
+            ${UNIVERSAL_BINARY_NAME} CHANGELOG.md LICENSE
 
           # Generate checksum for universal binary
-          shasum -a 256 ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz > ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz.sha256
+          shasum -a 256 ${UNIVERSAL_BINARY_NAME}.tar.gz > ${UNIVERSAL_BINARY_NAME}.tar.gz.sha256
         shell: bash
 
       - name: Upload Universal macOS artifact
@@ -214,16 +216,18 @@ jobs:
           cd artifacts
           ARTIFACT_ARCHIVE_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}.${{ matrix.file_ext }}"
           EXTRACT_DIR="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
+          
+          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}" # Now always the full name
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z x "${ARTIFACT_ARCHIVE_NAME}" -o"${EXTRACT_DIR}" # Extract to a new directory
+            7z x -aoa "${ARTIFACT_ARCHIVE_NAME}" -o"${EXTRACT_DIR}" # Extract to a new directory
             cd "${EXTRACT_DIR}"
-            ./${{ env.PROJECT_NAME }}.exe --version
+            ./${BINARY_EXECUTABLE_NAME}.exe --version
           else
             mkdir -p "${EXTRACT_DIR}" # Create directory for tar extraction
             tar -xzf "${ARTIFACT_ARCHIVE_NAME}" -C "${EXTRACT_DIR}"
             cd "${EXTRACT_DIR}"
-            ./${{ env.PROJECT_NAME }} --version
+            ./${BINARY_EXECUTABLE_NAME} --version
           fi
         shell: bash
 
