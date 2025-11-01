@@ -212,11 +212,17 @@ jobs:
       - name: Extract and test binary
         run: |
           cd artifacts
+          ARTIFACT_ARCHIVE_NAME="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}.${{ matrix.file_ext }}"
+          EXTRACT_DIR="${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}"
+
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z x ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}.${{ matrix.file_ext }}
+            7z x "${ARTIFACT_ARCHIVE_NAME}" -o"${EXTRACT_DIR}" # Extract to a new directory
+            cd "${EXTRACT_DIR}"
             ./${{ env.PROJECT_NAME }}.exe --version
           else
-            tar -xzf ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.os_name }}-${{ matrix.arch_name }}.${{ matrix.file_ext }}
+            mkdir -p "${EXTRACT_DIR}" # Create directory for tar extraction
+            tar -xzf "${ARTIFACT_ARCHIVE_NAME}" -C "${EXTRACT_DIR}"
+            cd "${EXTRACT_DIR}"
             ./${{ env.PROJECT_NAME }} --version
           fi
         shell: bash
