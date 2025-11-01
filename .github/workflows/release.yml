@@ -17,9 +17,9 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux AMD64
+          # Linux AMD64 (musl)
           - os: ubuntu-latest
-            rust_target: x86_64-unknown-linux-gnu
+            rust_target: x86_64-unknown-linux-musl
             os_name: linux
             arch_name: amd64
             file_ext: tar.gz
@@ -65,12 +65,9 @@ jobs:
       - name: Install Rust target and cross-compilation tools
         run: |
           rustup target add ${{ matrix.rust_target }}
-          if [ "${{ matrix.rust_target }}" = "aarch64-unknown-linux-gnu" ]; then
+          if [ "${{ matrix.rust_target }}" = "x86_64-unknown-linux-musl" ]; then
             sudo apt-get update
-            sudo apt-get install -y gcc-aarch64-linux-gnu
-            mkdir -p .cargo
-            echo '[target.aarch64-unknown-linux-gnu]' > .cargo/config.toml
-            echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
+            sudo apt-get install -y musl-tools
           elif [ "${{ matrix.rust_target }}" = "aarch64-unknown-linux-musl" ]; then
             sudo apt-get update
             sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
@@ -171,7 +168,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux AMD64
+          # Linux AMD64 (musl)
           - os: ubuntu-latest
             artifact_name_suffix: ubuntu-latest-amd64
             os_name: linux
