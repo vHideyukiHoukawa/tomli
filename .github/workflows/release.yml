@@ -205,6 +205,13 @@ jobs:
     env:
       VERSION: ${{ github.ref_name }}
     steps:
+      - name: Install QEMU for ARM64 testing
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.arch_name == 'arm64' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
+        shell: bash
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
