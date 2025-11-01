@@ -73,7 +73,10 @@ jobs:
             echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
           elif [ "${{ matrix.rust_target }}" = "aarch64-unknown-linux-musl" ]; then
             sudo apt-get update
-            sudo apt-get install -y musl-tools
+            sudo apt-get install -y musl-tools gcc-aarch64-linux-gnu
+            mkdir -p .cargo
+            echo '[target.aarch64-unknown-linux-musl]' > .cargo/config.toml
+            echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
           fi
         if: ${{ matrix.os != 'windows-latest' }} # rustup is not available on windows-latest by default
 
