@@ -270,7 +270,7 @@ jobs:
               fi
               
               echo "=== Set functionality test ==="
-              ./${BINARY_EXECUTABLE_NAME}.exe set -f test.toml name "modified-name"
+              ./${BINARY_EXECUTABLE_NAME}.exe set -i -f test.toml name "modified-name"
               RESULT=$(./${BINARY_EXECUTABLE_NAME}.exe query -f test.toml name)
               EXPECTED=' "modified-name"'
               if [ "$RESULT" = "$EXPECTED" ]; then
@@ -309,7 +309,7 @@ jobs:
             fi
             
             echo "=== Set functionality test ==="
-            ./${BINARY_EXECUTABLE_NAME} set -f test.toml name "modified-name"
+            ./${BINARY_EXECUTABLE_NAME} set -i -f test.toml name "modified-name"
             RESULT=$(./${BINARY_EXECUTABLE_NAME} query -f test.toml name)
             EXPECTED=' "modified-name"'
             if [ "$RESULT" = "$EXPECTED" ]; then
