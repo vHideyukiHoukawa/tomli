@@ -106,15 +106,12 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }}.exe ${ARTIFACT_NAME}.exe
             7z a ${ARTIFACT_NAME}.zip ${ARTIFACT_NAME}.exe CHANGELOG.md LICENSE
-            sha256sum ${ARTIFACT_NAME}.zip > ${ARTIFACT_NAME}.zip.sha256
           elif [[ "${{ matrix.os }}" == macos-* ]]; then
             mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
             tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
-            shasum -a 256 ${ARTIFACT_NAME}.tar.gz > ${ARTIFACT_NAME}.tar.gz.sha256
           else # Linux
             mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
             tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
-            sha256sum ${ARTIFACT_NAME}.tar.gz > ${ARTIFACT_NAME}.tar.gz.sha256
           fi
         shell: bash
 
@@ -122,9 +119,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch_name }}
-          path: |
-            ${{ env.ARTIFACT_NAME }}.*
-            ${{ env.ARTIFACT_NAME }}.*.sha256
+          path: ${{ env.ARTIFACT_NAME }}.*
 
   create-universal-macos-binary:
     needs: build
@@ -167,17 +162,14 @@ jobs:
           tar -czf ${UNIVERSAL_BINARY_NAME}.tar.gz \
             ${UNIVERSAL_BINARY_NAME} CHANGELOG.md LICENSE
 
-          # Generate checksum for universal binary
-          shasum -a 256 ${UNIVERSAL_BINARY_NAME}.tar.gz > ${UNIVERSAL_BINARY_NAME}.tar.gz.sha256
+
         shell: bash
 
       - name: Upload Universal macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-darwin-universal
-          path: |
-            ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz
-            ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz.sha256
+          path: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-darwin-universal.tar.gz
 
   test-binaries:
     needs: [build, create-universal-macos-binary]
@@ -340,10 +332,26 @@ jobs:
         with:
           path: artifacts
 
+      - name: Create unified checksums file
+        run: |
+          echo "# SHA256 Checksums for ${{ env.PROJECT_NAME }} ${{ env.VERSION }}" > SHA256SUMS
+          echo "# Verify with: sha256sum -c SHA256SUMS" >> SHA256SUMS
+          echo "" >> SHA256SUMS
+          
+          # Generate checksums for all release files
+          find artifacts -name "${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.tar.gz" -o -name "${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.zip" | sort | while read file; do
+            filename=$(basename "$file")
+            checksum=$(sha256sum "$file" | cut -d' ' -f1)
+            echo "$checksum  $filename" >> SHA256SUMS
+          done
+          
+          echo "Generated SHA256SUMS:"
+          cat SHA256SUMS
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/*/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.tar.gz
             artifacts/*/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.zip
-            artifacts/*/${{ env.PROJECT_NAME }}-${{ env.VERSION }}-*.sha256
+            SHA256SUMS
