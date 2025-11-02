@@ -261,7 +261,7 @@ jobs:
               echo "=== Query functionality test ==="
               echo 'name = "test-name"' > test.toml
               RESULT=$(./${BINARY_EXECUTABLE_NAME}.exe query -f test.toml name)
-              EXPECTED='"test-name"'
+              EXPECTED=' "test-name"'
               if [ "$RESULT" = "$EXPECTED" ]; then
                 echo "✓ Query test passed: $RESULT"
               else
@@ -272,7 +272,7 @@ jobs:
               echo "=== Set functionality test ==="
               ./${BINARY_EXECUTABLE_NAME}.exe set -f test.toml name "modified-name"
               RESULT=$(./${BINARY_EXECUTABLE_NAME}.exe query -f test.toml name)
-              EXPECTED='"modified-name"'
+              EXPECTED=' "modified-name"'
               if [ "$RESULT" = "$EXPECTED" ]; then
                 echo "✓ Set test passed: $RESULT"
               else
@@ -300,7 +300,7 @@ jobs:
             echo "=== Query functionality test ==="
             echo 'name = "test-name"' > test.toml
             RESULT=$(./${BINARY_EXECUTABLE_NAME} query -f test.toml name)
-            EXPECTED='"test-name"'
+            EXPECTED=' "test-name"'
             if [ "$RESULT" = "$EXPECTED" ]; then
               echo "✓ Query test passed: $RESULT"
             else
@@ -311,7 +311,7 @@ jobs:
             echo "=== Set functionality test ==="
             ./${BINARY_EXECUTABLE_NAME} set -f test.toml name "modified-name"
             RESULT=$(./${BINARY_EXECUTABLE_NAME} query -f test.toml name)
-            EXPECTED='"modified-name"'
+            EXPECTED=' "modified-name"'
             if [ "$RESULT" = "$EXPECTED" ]; then
               echo "✓ Set test passed: $RESULT"
             else
