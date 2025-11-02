@@ -260,7 +260,34 @@ jobs:
               echo "Skipping Windows ARM64 binary test on x86_64 runner (cross-compiled binary)"
               echo "Windows ARM64 binary extracted successfully"
             else
+              echo "=== Version output ==="
               ./${BINARY_EXECUTABLE_NAME}.exe --version
+              echo ""
+              echo "=== Help output ==="
+              ./${BINARY_EXECUTABLE_NAME}.exe --help
+              echo ""
+              echo "=== Query functionality test ==="
+              echo 'name = "test-name"' > test.toml
+              RESULT=$(./${BINARY_EXECUTABLE_NAME}.exe query -f test.toml name)
+              EXPECTED='"test-name"'
+              if [ "$RESULT" = "$EXPECTED" ]; then
+                echo "✓ Query test passed: $RESULT"
+              else
+                echo "✗ Query test failed: expected '$EXPECTED', got '$RESULT'"
+                exit 1
+              fi
+              
+              echo "=== Set functionality test ==="
+              ./${BINARY_EXECUTABLE_NAME}.exe set -f test.toml name "modified-name"
+              RESULT=$(./${BINARY_EXECUTABLE_NAME}.exe query -f test.toml name)
+              EXPECTED='"modified-name"'
+              if [ "$RESULT" = "$EXPECTED" ]; then
+                echo "✓ Set test passed: $RESULT"
+              else
+                echo "✗ Set test failed: expected '$EXPECTED', got '$RESULT'"
+                exit 1
+              fi
+              rm test.toml
             fi
           else
             mkdir -p "${EXTRACT_DIR}" # Create directory for tar extraction
@@ -272,7 +299,34 @@ jobs:
               echo "Testing ARM64 Linux binary using QEMU emulation"
             fi
             
+            echo "=== Version output ==="
             ./${BINARY_EXECUTABLE_NAME} --version
+            echo ""
+            echo "=== Help output ==="
+            ./${BINARY_EXECUTABLE_NAME} --help
+            echo ""
+            echo "=== Query functionality test ==="
+            echo 'name = "test-name"' > test.toml
+            RESULT=$(./${BINARY_EXECUTABLE_NAME} query -f test.toml name)
+            EXPECTED='"test-name"'
+            if [ "$RESULT" = "$EXPECTED" ]; then
+              echo "✓ Query test passed: $RESULT"
+            else
+              echo "✗ Query test failed: expected '$EXPECTED', got '$RESULT'"
+              exit 1
+            fi
+            
+            echo "=== Set functionality test ==="
+            ./${BINARY_EXECUTABLE_NAME} set -f test.toml name "modified-name"
+            RESULT=$(./${BINARY_EXECUTABLE_NAME} query -f test.toml name)
+            EXPECTED='"modified-name"'
+            if [ "$RESULT" = "$EXPECTED" ]; then
+              echo "✓ Set test passed: $RESULT"
+            else
+              echo "✗ Set test failed: expected '$EXPECTED', got '$RESULT'"
+              exit 1
+            fi
+            rm test.toml
           fi
         shell: bash
 
