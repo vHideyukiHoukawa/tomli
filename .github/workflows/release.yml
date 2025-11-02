@@ -53,6 +53,12 @@ jobs:
             os_name: windows
             arch_name: amd64
             file_ext: zip
+          # Windows ARM64
+          - os: windows-latest
+            rust_target: aarch64-pc-windows-msvc
+            os_name: windows
+            arch_name: arm64
+            file_ext: zip
     runs-on: ${{ matrix.os }}
     env:
       VERSION: ${{ github.ref_name }}
@@ -210,6 +216,12 @@ jobs:
             os_name: windows
             arch_name: amd64
             file_ext: zip
+          # Windows ARM64
+          - os: windows-latest
+            artifact_name_suffix: windows-latest-arm64
+            os_name: windows
+            arch_name: arm64
+            file_ext: zip
     runs-on: ${{ matrix.os }}
     env:
       VERSION: ${{ github.ref_name }}
@@ -238,7 +250,14 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z x -aoa "${ARTIFACT_ARCHIVE_NAME}" -o"${EXTRACT_DIR}" # Extract to a new directory
             cd "${EXTRACT_DIR}"
-            ./${BINARY_EXECUTABLE_NAME}.exe --version
+            
+            # Skip testing Windows ARM64 binaries on x86_64 runners (cross-compiled binaries can't run natively)
+            if [ "${{ matrix.arch_name }}" = "arm64" ]; then
+              echo "Skipping Windows ARM64 binary test on x86_64 runner (cross-compiled binary)"
+              echo "Windows ARM64 binary extracted successfully"
+            else
+              ./${BINARY_EXECUTABLE_NAME}.exe --version
+            fi
           else
             mkdir -p "${EXTRACT_DIR}" # Create directory for tar extraction
             tar -xzf "${ARTIFACT_ARCHIVE_NAME}" -C "${EXTRACT_DIR}"
