@@ -74,7 +74,7 @@ jobs:
             target
           key: ${{ runner.os }}-${{ matrix.rust_target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install Rust target and cross-compilation tools
+      - name: Install Rust target and cross-compilation tools (Unix)
         run: |
           rustup target add ${{ matrix.rust_target }}
           if [ "${{ matrix.rust_target }}" = "x86_64-unknown-linux-musl" ]; then
@@ -87,7 +87,11 @@ jobs:
             echo '[target.aarch64-unknown-linux-musl]' > .cargo/config.toml
             echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
           fi
-        if: ${{ matrix.os != 'windows-latest' }} # rustup is not available on windows-latest by default
+        if: ${{ matrix.os != 'windows-latest' }}
+
+      - name: Install Rust target (Windows)
+        run: rustup target add ${{ matrix.rust_target }}
+        if: ${{ matrix.os == 'windows-latest' }}
 
       - name: Build binary
         run: cargo build --verbose --release --target ${{ matrix.rust_target }}
