@@ -3,6 +3,10 @@ name: Build and release
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   push:
     tags:
@@ -10,6 +14,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0  # Disable incremental compilation for smaller release binaries
+  CARGO_NET_RETRY: 10   # Retry network requests for better reliability
   PROJECT_NAME: tomli # Parameterize the project name
 
 jobs:
