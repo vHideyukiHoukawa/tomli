@@ -99,19 +99,20 @@ jobs:
       - name: Prepare artifact
         run: |
           # Use VERSION directly (includes 'v' prefix if present in tag)
-          ARTIFACT_NAME="${{ env.PROJECT_NAME }}_${VERSION}_${{ matrix.os_name }}_${{ matrix.arch_name }}"
+          ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${VERSION}_${{ matrix.os_name }}_${{ matrix.arch_name }}"
+          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}"
 
-          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> $GITHUB_ENV
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> $GITHUB_ENV
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }}.exe ${ARTIFACT_NAME}.exe
-            7z a ${ARTIFACT_NAME}.zip ${ARTIFACT_NAME}.exe CHANGELOG.md LICENSE
+            cp target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }}.exe ${BINARY_EXECUTABLE_NAME}.exe
+            7z a ${ARCHIVE_NAME}.zip ${BINARY_EXECUTABLE_NAME}.exe CHANGELOG.md LICENSE
           elif [[ "${{ matrix.os }}" == macos-* ]]; then
-            mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
-            tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
+            cp target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${BINARY_EXECUTABLE_NAME}
+            tar -czf ${ARCHIVE_NAME}.tar.gz ${BINARY_EXECUTABLE_NAME} CHANGELOG.md LICENSE
           else # Linux
-            mv target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${ARTIFACT_NAME}
-            tar -czf ${ARTIFACT_NAME}.tar.gz ${ARTIFACT_NAME} CHANGELOG.md LICENSE
+            cp target/${{ matrix.rust_target }}/release/${{ env.PROJECT_NAME }} ${BINARY_EXECUTABLE_NAME}
+            tar -czf ${ARCHIVE_NAME}.tar.gz ${BINARY_EXECUTABLE_NAME} CHANGELOG.md LICENSE
           fi
         shell: bash
 
@@ -119,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch_name }}
-          path: ${{ env.ARTIFACT_NAME }}.*
+          path: ${{ env.ARCHIVE_NAME }}.*
 
   create-universal-macos-binary:
     needs: build
@@ -150,17 +151,20 @@ jobs:
           # Extract ARM64 binary from its archive
           tar -xzf artifacts/macos-arm64/${{ env.PROJECT_NAME }}_${{ env.VERSION }}_darwin_arm64.tar.gz -C artifacts/macos-arm64
 
-          UNIVERSAL_BINARY_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_darwin_universal"
+          UNIVERSAL_ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_darwin_universal"
+          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}"
+
+          echo "UNIVERSAL_ARCHIVE_NAME=${UNIVERSAL_ARCHIVE_NAME}" >> $GITHUB_ENV
 
           # Combine with lipo
           lipo -create \
-            artifacts/macos-amd64/${{ env.PROJECT_NAME }}_${{ env.VERSION }}_darwin_amd64 \
-            artifacts/macos-arm64/${{ env.PROJECT_NAME }}_${{ env.VERSION }}_darwin_arm64 \
-            -output ${UNIVERSAL_BINARY_NAME} # Output the universal binary with full name
+            artifacts/macos-amd64/${BINARY_EXECUTABLE_NAME} \
+            artifacts/macos-arm64/${BINARY_EXECUTABLE_NAME} \
+            -output ${BINARY_EXECUTABLE_NAME}
 
           # Create universal archive
-          tar -czf ${UNIVERSAL_BINARY_NAME}.tar.gz \
-            ${UNIVERSAL_BINARY_NAME} CHANGELOG.md LICENSE
+          tar -czf ${UNIVERSAL_ARCHIVE_NAME}.tar.gz \
+            ${BINARY_EXECUTABLE_NAME} CHANGELOG.md LICENSE
 
 
         shell: bash
@@ -169,7 +173,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PROJECT_NAME }}-darwin-universal
-          path: ${{ env.PROJECT_NAME }}_${{ env.VERSION }}_darwin_universal.tar.gz
+          path: ${{ env.UNIVERSAL_ARCHIVE_NAME }}.tar.gz
 
   test-binaries:
     needs: [build, create-universal-macos-binary]
@@ -240,9 +244,8 @@ jobs:
           cd artifacts
           ARTIFACT_ARCHIVE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.os_name }}_${{ matrix.arch_name }}.${{ matrix.file_ext }}"
           EXTRACT_DIR="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.os_name }}_${{ matrix.arch_name }}"
+          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}"
           
-          BINARY_EXECUTABLE_NAME="${{ env.PROJECT_NAME }}_${{ env.VERSION }}_${{ matrix.os_name }}_${{ matrix.arch_name }}"
-
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z x -aoa "${ARTIFACT_ARCHIVE_NAME}" -o"${EXTRACT_DIR}" # Extract to a new directory
             cd "${EXTRACT_DIR}"
